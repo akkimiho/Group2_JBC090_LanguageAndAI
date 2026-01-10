@@ -56,6 +56,26 @@ def df_clean(df: pd.DataFrame) -> pd.DataFrame:
 	df = df.dropna()
 	return df
 
+def normalize_punctuation(text: str) -> str:
+    """
+    Normalize punctuation while preserving stylistic markers.
+    Keeps . , ! ? ' and removes noisy symbols.
+    Collapses repeated ! and ?.
+    """
+    if not isinstance(text, str):
+        return text
+
+    #Removing unwanted punctuation, but keep only once: . , ! ? ')
+    text = re.sub(r"[^a-z0-9\s\.\,\!\?\']", "", text)
+
+    #Normalize repeated punctuation
+    text = re.sub(r'\!+', '!', text)
+    text = re.sub(r'\?+', '?', text)
+
+    #Normalize whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    return text
 
 #1 Data Prep 
 
@@ -86,6 +106,31 @@ sensing_intuitive['post'] = sensing_intuitive['post'].str.lower()
 feeling_thinking['post'] = feeling_thinking['post'].str.lower()
 judging_perceiving['post'] = judging_perceiving['post'].str.lower()
 
-print(judging_perceiving[['post']].head())
+#print(judging_perceiving[['post']].head())
+
+#Remove URLs
+url_pattern = r'http\S+|www\S+|https\S+'
+
+extravert_introvert['post'] = extravert_introvert['post'].str.replace(
+	r'http\S+|www\.\S+',
+	'',
+	regex=True
+)
+url_pattern = r'http\S+|www\S+|https\S+'
+
+
+#Normalize punctuation
+print("Before punctuation normalization:")
+print(extravert_introvert['post'].head())
+extravert_introvert['post'] = extravert_introvert['post'].apply(normalize_punctuation)
+sensing_intuitive['post'] = sensing_intuitive['post'].apply(normalize_punctuation)
+feeling_thinking['post'] = feeling_thinking['post'].apply(normalize_punctuation)
+judging_perceiving['post'] = judging_perceiving['post'].apply(normalize_punctuation)
+
+#Remove extra whitespace
+extravert_introvert['post'] = extravert_introvert['post'].str.strip()
+sensing_intuitive['post'] = sensing_intuitive['post'].str.strip()
+feeling_thinking['post'] = feeling_thinking['post'].str.strip()
+judging_perceiving['post'] = judging_perceiving['post'].str.strip()
 
 
