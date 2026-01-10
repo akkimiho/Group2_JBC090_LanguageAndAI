@@ -105,6 +105,44 @@ def tokenize(documents):
 
     return tokenized_documents
 
+def depollute_text(text: str, single_word_blacklist: set) -> str:
+    if not isinstance(text, str):
+        return text
+
+    # Tokenize on whitespace (text is already normalized)
+    tokens = text.split()
+
+    # Remove blacklisted tokens
+    tokens = [t for t in tokens if t not in single_word_blacklist]
+
+    # Reconstruct text
+    text = " ".join(tokens)
+
+    # Normalize whitespace
+    text = re.sub(r"\s+", " ", text).strip()
+
+    return text
+
+def tokenize_to_string(text: str) -> str:
+    """
+    Tokenize depolluted text and return a space-separated token string.
+    Preserves stylistic punctuation: . , ! ?
+    """
+    if not isinstance(text, str):
+        return ""
+
+    punctuation_to_keep = {'.', ',', '!', '?'}
+
+    tokens = []
+    for word in text.split():
+        if len(word) > 1 and word[-1] in punctuation_to_keep:
+            tokens.append(word[:-1])
+            tokens.append(word[-1])
+        else:
+            tokens.append(word)
+
+    return " ".join(tokens)
+
 #1 Data Prep 
 
 #Loading different personality datasets
@@ -116,6 +154,13 @@ sensing_intuitive = load_research_dataset('data/sensing_intuitive.csv')
 feeling_thinking = load_research_dataset('data/feeling_thinking.csv')
 # Judging Perceiving csv
 judging_perceiving = load_research_dataset('data/judging_perceiving.csv')
+
+#Additional datasets
+	# #Age
+	# age_data = load_research_dataset('data/age_data.csv')
+	# #gender
+	# gender_data = load_research_dataset('data/gender_data.csv')
+	# nationality_data = load_research_dataset('data/nationality_data.csv')
 
 #Summarize datasets
 # summarize_dataset(extravert_introvert)
@@ -183,13 +228,13 @@ judging_perceiving['post_clean'] = judging_perceiving['post_clean'].str.strip()
 
 #Tokenization
 #I used rule-based tokenizer that separates sentence-final punctuation marks while preserving stylistic markers(exclamation and question marks).
-extrovert_introvert['post_clean'] = tokenize(extrovert_introvert['post_clean'])
-sensing_intuitive['post_clean'] = tokenize(sensing_intuitive['post_clean'])
-feeling_thinking['post_clean'] = tokenize(feeling_thinking['post_clean'])
-judging_perceiving['post_clean'] = tokenize(judging_perceiving['post_clean'])
+extrovert_introvert['tokens'] = extrovert_introvert['post_clean'].apply(tokenize)
+sensing_intuitive['tokens'] = sensing_intuitive['post_clean'].apply(tokenize)
+feeling_thinking['tokens'] = feeling_thinking['post_clean'].apply(tokenize)
+judging_perceiving['tokens'] = judging_perceiving['post_clean'].apply(tokenize)
 
 #Check
-print(extrovert_introvert[['post', 'post_clean']].head())
+print(extrovert_introvert[['post', 'post_clean', 'tokens']].head())
 
 
 #3 Lexical depollution
@@ -215,12 +260,40 @@ blacklist = [
     "judger", "perceiver",
 
     # mbti jargon?
-    "mbti", "myers briggs", "myers-briggs", "16personalities",
+    "mbti", "myers-briggs", "16personalities",
     "cognitive functions",
 
 ]
 
+extrovert_introvert['post_depolluted'] = extrovert_introvert['tokens'].apply(
+    lambda x: depollute_text(x, blacklist)
+)
+sensing_intuitive['post_depolluted'] = sensing_intuitive['tokens'].apply(
+    lambda x: depollute_text(x, blacklist)
+)
+feeling_thinking['post_depolluted'] = feeling_thinking['tokens'].apply(
+    lambda x: depollute_text(x, blacklist)
+)
+judging_perceiving['post_depolluted'] = judging_perceiving['tokens'].apply(
+    lambda x: depollute_text(x, blacklist)
+)
 
+#Checks if there is leakege from blacklist
+#Check if there is a blacklist word left
+vocab = set(" ".join(extrovert_introvert['post_depolluted']).split())
+print(vocab.intersection(blacklist))
+vocab = set(" ".join(sensing_intuitive['post_depolluted']).split())
+print(vocab.intersection(blacklist))
+vocab = set(" ".join(feeling_thinking['post_depolluted']).split())
+print(vocab.intersection(blacklist))
+vocab = set(" ".join(judging_perceiving['post_depolluted']).split())
+print(vocab.intersection(blacklist))	
+
+#save cleaned datasets(all columns)
+extrovert_introvert.to_csv('data/extrovert_introvert_cleaned.csv', index=False)
+sensing_intuitive.to_csv('data/sensing_intuitive_cleaned.csv', index=False)	
+feeling_thinking.to_csv('data/feeling_thinking_cleaned.csv', index=False)
+judging_perceiving.to_csv('data/judging_perceiving_cleaned.csv', index=False)
 
 end = time.time()
 print(f"Runtime: {end - start:.2f} seconds")

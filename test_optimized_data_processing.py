@@ -3,17 +3,11 @@ import re
 import time
 
 start = time.time()
-
+URL_PATTERN = r'http\S+|www\S+|https\S+'
 #All functions for data preprocessing
 def load_research_dataset(file_path: str) -> pd.DataFrame:
 	"""
 	Load a research dataset from a CSV file.
-
-	Parameters:
-	file_path:The path to the CSV
-
-	Return
-	A pandas DataFrame containing the loaded dataset.
 	"""
 	try:
 		data = pd.read_csv(file_path)
@@ -80,7 +74,33 @@ def normalize_punctuation(text: str) -> str:
 
     return text
 
-# Tokenization function
+def clean_text_series(s: pd.Series) -> pd.Series:
+
+    s = s.astype(str).str.lower()
+    # Remove URLs
+    s = s.str.replace(URL_PATTERN, "", regex=True)
+
+    # Normalize punctuation + whitespace
+    s = s.apply(normalize_punctuation)
+
+    return s
+
+
+def depollute_text_single_words(text: str, blacklist: set) -> str:
+    if not isinstance(text, str):
+        return text
+    tokens = text.split()
+    tokens = [t for t in tokens if t not in blacklist]
+    return " ".join(tokens)
+
+def verify_no_leakage(text_series: pd.Series, blacklist: set) -> list:
+
+    s = text_series.dropna()
+    # s = s.sample(20000, random_state=42) #if data is too large, then we should do this
+    vocab = set(" ".join(s).split())
+    leaks = sorted(vocab.intersection(blacklist))
+    return leaks
+
 def tokenize(documents):
     """
     Tokenize text into words and punctuation tokens.
@@ -108,98 +128,12 @@ def tokenize(documents):
 #1 Data Prep 
 
 #Loading different personality datasets
-#Extravert Introvert csv
-extrovert_introvert = load_research_dataset('data/extrovert_introvert.csv')
-#Sensing Intuitive csv
-sensing_intuitive = load_research_dataset('data/sensing_intuitive.csv')
-# Feeling Thinking csv
-feeling_thinking = load_research_dataset('data/feeling_thinking.csv')
-# Judging Perceiving csv
-judging_perceiving = load_research_dataset('data/judging_perceiving.csv')
-
-#Summarize datasets
-# summarize_dataset(extravert_introvert)
-
-
-#Check NaN values 
-print(extrovert_introvert.isna().sum())
-print(sensing_intuitive.isna().sum())
-print(feeling_thinking.isna().sum())
-print(judging_perceiving.isna().sum())	
-
-# 2 Basic text cleaning
-#create a column post_clean to store cleaned posts
-extrovert_introvert['post_clean'] = extrovert_introvert['post']
-sensing_intuitive['post_clean'] = sensing_intuitive['post']
-feeling_thinking['post_clean'] = feeling_thinking['post']
-judging_perceiving['post_clean'] = judging_perceiving['post']
-
-
-#text to lowercase
-extrovert_introvert['post_clean'] = extrovert_introvert['post_clean'].str.lower()
-sensing_intuitive['post_clean'] = sensing_intuitive['post_clean'].str.lower()
-feeling_thinking['post_clean'] = feeling_thinking['post_clean'].str.lower()
-judging_perceiving['post_clean'] = judging_perceiving['post_clean'].str.lower()
-
-#print(judging_perceiving[['post']].head())
-
-#Remove URLs
-url_pattern = r'http\S+|www\S+|https\S+'
-
-extrovert_introvert['post_clean'] = extrovert_introvert['post_clean'].str.replace(
-	r'http\S+|www\.\S+',
-	'',
-	regex=True
-)
-sensing_intuitive['post_clean'] = sensing_intuitive['post_clean'].str.replace(
-	r'http\S+|www\.\S+',
-	'',
-	regex=True
-)
-feeling_thinking['post_clean'] = feeling_thinking['post_clean'].str.replace(
-	r'http\S+|www\.\S+',
-	'',
-	regex=True
-)
-judging_perceiving['post_clean'] = judging_perceiving['post_clean'].str.replace(
-	r'http\S+|www\.\S+',
-	'',
-	regex=True
-)
-
-#Normalize punctuation
-print("Before punctuation normalization:")
-print(extrovert_introvert['post_clean'].head())
-extrovert_introvert['post_clean'] = extrovert_introvert['post_clean'].apply(normalize_punctuation)
-sensing_intuitive['post_clean'] = sensing_intuitive['post_clean'].apply(normalize_punctuation)
-feeling_thinking['post_clean'] = feeling_thinking['post_clean'].apply(normalize_punctuation)
-judging_perceiving['post_clean'] = judging_perceiving['post_clean'].apply(normalize_punctuation)
-
-#Remove extra whitespace
-extrovert_introvert['post_clean'] = extrovert_introvert['post_clean'].str.strip()
-sensing_intuitive['post_clean'] = sensing_intuitive['post_clean'].str.strip()
-feeling_thinking['post_clean'] = feeling_thinking['post_clean'].str.strip()
-judging_perceiving['post_clean'] = judging_perceiving['post_clean'].str.strip()
-
-#Tokenization
-#I used rule-based tokenizer that separates sentence-final punctuation marks while preserving stylistic markers(exclamation and question marks).
-extrovert_introvert['post_clean'] = tokenize(extrovert_introvert['post_clean'])
-sensing_intuitive['post_clean'] = tokenize(sensing_intuitive['post_clean'])
-feeling_thinking['post_clean'] = tokenize(feeling_thinking['post_clean'])
-judging_perceiving['post_clean'] = tokenize(judging_perceiving['post_clean'])
-
-#Check
-print(extrovert_introvert[['post', 'post_clean']].head())
-
-
-#3 Lexical depollution
-#Create a column of depolluted posts
-extrovert_introvert['post_depolluted'] = extrovert_introvert['post_clean']
-sensing_intuitive['post_depolluted'] = sensing_intuitive['post_clean']	
-feeling_thinking['post_depolluted'] = feeling_thinking['post_clean']
-judging_perceiving['post_depolluted'] = judging_perceiving['post_clean']
-
-#blacklist of MBTI-related terms
+datasets = {
+    "extrovert_introvert": ("data/extrovert_introvert.csv", "extrovert"),
+    "sensing_intuitive":   ("data/sensing_intuitive.csv", "sensing"),
+    "feeling_thinking":    ("data/feeling_thinking.csv", "feeling"), 
+    "judging_perceiving":  ("data/judging_perceiving.csv", "judging"),
+}
 
 blacklist = [
      # mentions of type labels
@@ -215,11 +149,82 @@ blacklist = [
     "judger", "perceiver",
 
     # mbti jargon?
-    "mbti", "myers briggs", "myers-briggs", "16personalities",
+    "mbti", "myers-briggs", "16personalities",
     "cognitive functions",
 
 ]
 
+
+
+for name, (path, label_col) in datasets.items():
+    print(f"\n Processing: {name} => {path}")
+    df = pd.read_csv(path)
+    
+    required_cols = {"auhtor_ID", "post", label_col}
+    
+    missing = required_cols - set(df.columns)
+    
+    if missing:
+        raise ValueError(f"{name}: Missing columns: {missing}")
+
+    # Drop missing critical fields ONLY
+    df = df.dropna(subset=["auhtor_ID", "post", label_col])
+
+    # Clean text (string)
+    print(f"Cleaning text...")
+    df["post_clean"] = clean_text_series(df["post"])
+    
+
+    # Depollution (single-word blacklist)
+    print(f"Depollution of text...")
+    df["post_depolluted"] = df["post_clean"].apply(
+        lambda x: depollute_text_single_words(x, blacklist)
+    )
+	# Depollution
+    df["post_depolluted"] = df["post_clean"].apply(
+        lambda x: depollute_text_single_words(x, blacklist)
+    )
+    print("Verification...")
+    
+    # Verification
+    leaks = verify_no_leakage(df["post_depolluted"], blacklist)
+    print("Leakage count:", len(leaks))
+    if leaks:
+        print("Example leaks:", leaks[:20])
+        
+
+    # Class imbalance
+    print("Imbalance checks...")
+    
+    counts = df[label_col].value_counts()
+    perc = df[label_col].value_counts(normalize=True) * 100
+    print("Class counts:\n", counts)
+    print("Class %:\n", perc.round(2))
+
+    # Tokenization
+    print("Tokenization...")
+    df["post_tokens_raw"] = df["post_clean"].apply(tokenize)
+    df["post_tokens"] = df["post_depolluted"].apply(tokenize)
+
+    # Save dataset with tokens without depollution
+    out_tokens_raw = f"data/clean/{name}_tokens_raw.csv"
+    df[["auhtor_ID", "post_tokens", label_col]].to_csv(out_tokens_raw, index=False)
+    print("Saved:", out_tokens_raw)
+
+    # Save string-based dataset (TF-IDF)out_text = f"data/clean/{name}_depolluted_text.csv"
+    out_text = f"data/clean/{name}_depolluted_text.csv"
+    df[["auhtor_ID", "post_depolluted", label_col]].to_csv(out_text, index=False)
+    print("Saved:", out_text)
+
+    # Save token-based dataset (stylometry) - depolluted
+    out_tokens = f"data/clean/{name}_depolluted_tokens.csv"
+    df[["auhtor_ID", "post_tokens", label_col]].to_csv(out_tokens, index=False)
+    print("Saved:", out_tokens)
+
+    # save full dataset with all columns for reference
+    out_full = f"data/clean/{name}_full.csv"
+    df.to_csv(out_full, index=False)
+    print("Saved:", out_full)	
 
 
 end = time.time()
