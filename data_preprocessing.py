@@ -1,5 +1,8 @@
 import pandas as pd
 import re
+import time
+
+start = time.time()
 
 #All functions for data preprocessing
 def load_research_dataset(file_path: str) -> pd.DataFrame:
@@ -167,3 +170,37 @@ judging_perceiving['post'] = tokenize(judging_perceiving['post'])
 
 #Check
 print(extravert_introvert['post'].head())
+
+#Saving cleaned datasets
+extravert_introvert.to_csv('data/clean/cleaned_extravert_introvert.csv', index=False)
+sensing_intuitive.to_csv('data/clean/cleaned_sensing_intuitive.csv', index=False)
+feeling_thinking.to_csv('data/clean/cleaned_feeling_thinking.csv', index=False)
+judging_perceiving.to_csv('data/clean/cleaned_judging_perceiving.csv', index=False)
+
+#3 Lexical depollution
+
+#blacklist of MBTI-related terms
+
+blacklist = [
+     # mentions of type labels
+    "intj", "intp", "entj", "entp", "infj", "infp", "enfj", "enfp",
+    "istj", "istp", "estj", "estp", "isfj", "isfp", "esfj", "esfp",
+
+    #other personality-related terms
+    "introvert", "introverted", "introversion",
+    "extrovert", "extroverted", "extravert", "extraverted",
+    "sensor", "sensing",
+    "intuitive", "intuition",
+    "thinker", "feeler",
+    "judger", "perceiver",
+
+    # mbti jargon?
+    "mbti", "myers briggs", "myers-briggs", "16personalities",
+    "cognitive functions",
+
+]
+
+
+
+end = time.time()
+print(f"Runtime: {end - start:.2f} seconds")
