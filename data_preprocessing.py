@@ -77,6 +77,31 @@ def normalize_punctuation(text: str) -> str:
 
     return text
 
+# Tokenization function
+def tokenize(documents):
+    """
+    Tokenize text into words and punctuation tokens.
+    Assumes text is already lowercased and punctuation-normalized.
+    Preserves stylistic punctuation: . , ! ?
+    """
+    tokenized_documents = []
+
+    punctuation_to_keep = {'.', ',', '!', '?'}
+
+    for document in documents:
+        tokens = []
+        for word in document.split():
+            # If word ends with punctuation we care about
+            if word[-1] in punctuation_to_keep and len(word) > 1:
+                tokens.append(word[:-1])
+                tokens.append(word[-1])
+            else:
+                tokens.append(word)
+
+        tokenized_documents.append(tokens)
+
+    return tokenized_documents
+
 #1 Data Prep 
 
 #Loading different personality datasets
@@ -133,4 +158,12 @@ sensing_intuitive['post'] = sensing_intuitive['post'].str.strip()
 feeling_thinking['post'] = feeling_thinking['post'].str.strip()
 judging_perceiving['post'] = judging_perceiving['post'].str.strip()
 
+#Tokenization
+#I used rule-based tokenizer that separates sentence-final punctuation marks while preserving stylistic markers(exclamation and question marks).
+extravert_introvert['post'] = tokenize(extravert_introvert['post'])
+sensing_intuitive['post'] = tokenize(sensing_intuitive['post'])
+feeling_thinking['post'] = tokenize(feeling_thinking['post'])
+judging_perceiving['post'] = tokenize(judging_perceiving['post'])
 
+#Check
+print(extravert_introvert['post'].head())
