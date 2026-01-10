@@ -128,56 +128,76 @@ print(feeling_thinking.isna().sum())
 print(judging_perceiving.isna().sum())	
 
 # 2 Basic text cleaning
+#create a column post_clean to store cleaned posts
+extravert_introvert['post_clean'] = extravert_introvert['post']
+sensing_intuitive['post_clean'] = sensing_intuitive['post']
+feeling_thinking['post_clean'] = feeling_thinking['post']
+judging_perceiving['post_clean'] = judging_perceiving['post']
+
+
 #text to lowercase
-extravert_introvert['post'] = extravert_introvert['post'].str.lower()
-sensing_intuitive['post'] = sensing_intuitive['post'].str.lower()
-feeling_thinking['post'] = feeling_thinking['post'].str.lower()
-judging_perceiving['post'] = judging_perceiving['post'].str.lower()
+extravert_introvert['post_clean'] = extravert_introvert['post_clean'].str.lower()
+sensing_intuitive['post_clean'] = sensing_intuitive['post_clean'].str.lower()
+feeling_thinking['post_clean'] = feeling_thinking['post_clean'].str.lower()
+judging_perceiving['post_clean'] = judging_perceiving['post_clean'].str.lower()
 
 #print(judging_perceiving[['post']].head())
 
 #Remove URLs
 url_pattern = r'http\S+|www\S+|https\S+'
 
-extravert_introvert['post'] = extravert_introvert['post'].str.replace(
+extravert_introvert['post_clean'] = extravert_introvert['post_clean'].str.replace(
 	r'http\S+|www\.\S+',
 	'',
 	regex=True
 )
-url_pattern = r'http\S+|www\S+|https\S+'
-
+sensing_intuitive['post_clean'] = sensing_intuitive['post_clean'].str.replace(
+	r'http\S+|www\.\S+',
+	'',
+	regex=True
+)
+feeling_thinking['post_clean'] = feeling_thinking['post_clean'].str.replace(
+	r'http\S+|www\.\S+',
+	'',
+	regex=True
+)
+judging_perceiving['post_clean'] = judging_perceiving['post_clean'].str.replace(
+	r'http\S+|www\.\S+',
+	'',
+	regex=True
+)
 
 #Normalize punctuation
 print("Before punctuation normalization:")
-print(extravert_introvert['post'].head())
-extravert_introvert['post'] = extravert_introvert['post'].apply(normalize_punctuation)
-sensing_intuitive['post'] = sensing_intuitive['post'].apply(normalize_punctuation)
-feeling_thinking['post'] = feeling_thinking['post'].apply(normalize_punctuation)
-judging_perceiving['post'] = judging_perceiving['post'].apply(normalize_punctuation)
+print(extravert_introvert['post_clean'].head())
+extravert_introvert['post_clean'] = extravert_introvert['post_clean'].apply(normalize_punctuation)
+sensing_intuitive['post_clean'] = sensing_intuitive['post_clean'].apply(normalize_punctuation)
+feeling_thinking['post_clean'] = feeling_thinking['post_clean'].apply(normalize_punctuation)
+judging_perceiving['post_clean'] = judging_perceiving['post_clean'].apply(normalize_punctuation)
 
 #Remove extra whitespace
-extravert_introvert['post'] = extravert_introvert['post'].str.strip()
-sensing_intuitive['post'] = sensing_intuitive['post'].str.strip()
-feeling_thinking['post'] = feeling_thinking['post'].str.strip()
-judging_perceiving['post'] = judging_perceiving['post'].str.strip()
+extravert_introvert['post_clean'] = extravert_introvert['post_clean'].str.strip()
+sensing_intuitive['post_clean'] = sensing_intuitive['post_clean'].str.strip()
+feeling_thinking['post_clean'] = feeling_thinking['post_clean'].str.strip()
+judging_perceiving['post_clean'] = judging_perceiving['post_clean'].str.strip()
 
 #Tokenization
 #I used rule-based tokenizer that separates sentence-final punctuation marks while preserving stylistic markers(exclamation and question marks).
-extravert_introvert['post'] = tokenize(extravert_introvert['post'])
-sensing_intuitive['post'] = tokenize(sensing_intuitive['post'])
-feeling_thinking['post'] = tokenize(feeling_thinking['post'])
-judging_perceiving['post'] = tokenize(judging_perceiving['post'])
+extravert_introvert['post_clean'] = tokenize(extravert_introvert['post_clean'])
+sensing_intuitive['post_clean'] = tokenize(sensing_intuitive['post_clean'])
+feeling_thinking['post_clean'] = tokenize(feeling_thinking['post_clean'])
+judging_perceiving['post_clean'] = tokenize(judging_perceiving['post_clean'])
 
 #Check
-print(extravert_introvert['post'].head())
+print(extravert_introvert[['post', 'post_clean']].head())
 
-#Saving cleaned datasets
-extravert_introvert.to_csv('data/clean/cleaned_extravert_introvert.csv', index=False)
-sensing_intuitive.to_csv('data/clean/cleaned_sensing_intuitive.csv', index=False)
-feeling_thinking.to_csv('data/clean/cleaned_feeling_thinking.csv', index=False)
-judging_perceiving.to_csv('data/clean/cleaned_judging_perceiving.csv', index=False)
 
 #3 Lexical depollution
+#Create a column of depolluted posts
+extravert_introvert['post_depolluted'] = extravert_introvert['post_clean']
+sensing_intuitive['post_depolluted'] = sensing_intuitive['post_clean']	
+feeling_thinking['post_depolluted'] = feeling_thinking['post_clean']
+judging_perceiving['post_depolluted'] = judging_perceiving['post_clean']
 
 #blacklist of MBTI-related terms
 
