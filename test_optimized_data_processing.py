@@ -4,6 +4,7 @@ import time
 
 start = time.time()
 URL_PATTERN = r'http\S+|www\S+|https\S+'
+
 #All functions for data preprocessing
 def load_research_dataset(file_path: str) -> pd.DataFrame:
 	"""
@@ -105,7 +106,7 @@ def tokenize(documents):
     """
     Tokenize text into words and punctuation tokens.
     Assumes text is already lowercased and punctuation-normalized.
-    Preserves stylistic punctuation: . , ! ?
+    Preserves stylistic punctuation: . , ! ?(one symbol)
     """
     tokenized_documents = []
 
@@ -148,7 +149,7 @@ blacklist = [
     "thinker", "feeler",
     "judger", "perceiver",
 
-    # mbti jargon?
+    # mbti jargon
     "mbti", "myers-briggs", "16personalities",
     "cognitive functions",
 
@@ -180,11 +181,6 @@ for name, (path, label_col) in datasets.items():
     df["post_depolluted"] = df["post_clean"].apply(
         lambda x: depollute_text_single_words(x, blacklist)
     )
-	# Depollution
-    df["post_depolluted"] = df["post_clean"].apply(
-        lambda x: depollute_text_single_words(x, blacklist)
-    )
-    print("Verification...")
     
     # Verification
     leaks = verify_no_leakage(df["post_depolluted"], blacklist)
